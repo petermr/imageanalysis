@@ -16,7 +16,11 @@ public class ImageAnalysisFixtures {
 	
 	public final static File JOURNAL_HTML = new File(TEST_IMAGE_DIR, "journal.html");
 	
+	public final static String LINES = "lines";
 	public final static File LINES_DIR = new File(TEST_IMAGE_DIR, "lines");
+	public final static File TARGET_LINES_DIR = new File(TARGET_DIR, LINES+"/");
+
+	
 	public final static File TREE_PNG = new File(LINES_DIR, "tree.png");
 	public final static File TREE1_PNG = new File(LINES_DIR, "tree1.png");
 	public static final File ETHANE_PNG = new File(LINES_DIR, "ethane.png");
@@ -66,6 +70,7 @@ public class ImageAnalysisFixtures {
 	public static final File TIMES_GIF = new File(TEXT_DIR, "times.gif");
 	public static final File LARGE_PHYLO_JPG = new File(ImageAnalysisFixtures.LINES_DIR, "1471-2148-13-93-1-l.jpg");
 
+	public static final File COMPOUND_DIR = new File(TEST_IMAGE_DIR, "compound/");
 	public final static File DIAGRAMS_DIR = new File(TEST_IMAGE_DIR, "diagrams/");
 	
 	public final static String BIO = "bio";
@@ -85,7 +90,6 @@ public class ImageAnalysisFixtures {
 
 	public static final File GENERAL_DIR = new File(TEST_IMAGE_DIR, "general");
 	public static final File REFFONT_DIR = new File(GENERAL_DIR, "refFont");
-	public static final File COMPOUND_DIR = new File(TEST_IMAGE_DIR, "compound");
 
 	private static final File IMAGE_MAIN_DIR = new File("src/main/resources/org/xmlcml/image");
 	public static final File FONTS_MAIN_DIR = new File(IMAGE_MAIN_DIR, "text/fonts");

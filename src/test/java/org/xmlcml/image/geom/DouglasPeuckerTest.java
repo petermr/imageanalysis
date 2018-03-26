@@ -97,6 +97,11 @@ public class DouglasPeuckerTest {
 	}
 
 	@Test
+	/** not sure whether still current.
+	 * 
+	 *  have removed other contours files
+	 * 
+	 */
 	public void testContours() {
 		SVGElement contour = SVGElement.readAndCreateSVG(new File(ImageAnalysisFixtures.LINES_DIR, "contours/1.svg"));
 		List<SVGLine> lines = SVGLine.extractSelfAndDescendantLines(contour);
@@ -105,7 +110,7 @@ public class DouglasPeuckerTest {
 		DouglasPeucker douglasPeucker = new DouglasPeucker(0.1);
 		List<Real2> reducedList = douglasPeucker.reduce(points);
 		boolean close = true;
-		SVGG g = SVGLine.plotPointsAsTouchingLines(reducedList, close);
+		SVGG g = (SVGG) SVGLine.plotPointsAsTouchingLines(reducedList, close);
 		Assert.assertEquals("lines", 11, reducedList.size());
 		File file = new File("target/contours/");
 		file.mkdirs();

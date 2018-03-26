@@ -3,14 +3,13 @@ package org.xmlcml.image.colour;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
-import javax.imageio.ImageIO;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.xmlcml.euclid.Int2Range;
-import org.xmlcml.euclid.IntRange;
+import org.xmlcml.graphics.svg.SVGG;
+import org.xmlcml.graphics.svg.SVGSVG;
 import org.xmlcml.graphics.svg.util.ImageIOUtil;
 import org.xmlcml.image.ImageAnalysisFixtures;
 import org.xmlcml.image.ImageUtil;
@@ -19,6 +18,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 
 import boofcv.io.image.UtilImageIO;
+import junit.framework.Assert;
 
 /** classifies the colours used in a diagram.
  * 
@@ -100,11 +100,123 @@ public class ColorAnalyzerTest {
 	public void testPosterizeMadagascar() throws IOException {
 		testPosterize0("madagascar");
 	}
+	
+	@Test
+	public void testMoleculeGrayScale() {
+		String fileRoot = "histogram";
+
+		File moleculeFile = new File(ImageAnalysisFixtures.LINES_DIR, "IMG_20131119a.jpg");
+		BufferedImage image = UtilImageIO.loadImage(moleculeFile.toString());
+		ColorAnalyzer colorAnalyzer = new ColorAnalyzer(image);
+		BufferedImage grayImage = colorAnalyzer.getGrayscaleImage();
+		
+		for (Integer nvalues : new Integer[]{4,8,16,32,64,128}) {
+			BufferedImage imageOut = ImageUtil.flattenImage(grayImage, nvalues);
+			colorAnalyzer.readImageDeepCopy(imageOut);
+			SVGG g = colorAnalyzer.createColorFrequencyPlot();
+			SVGSVG.wrapAndWriteAsSVG(g, new File("target/" + fileRoot + "/postermol"+nvalues+".svg"));
+			ImageIOUtil.writeImageQuietly(imageOut, new File("target/" + fileRoot + "/postermol"+nvalues+".png"));
+		}
+		
+	}
+	
+	@Test
+	/** photo of molecule
+	 * the background is gray.
+	 * create histogram based on greyvalues
+	 * 
+	 */
+	public void testMoleculePhotoHistogram() {
+		File moleculeFile = new File(ImageAnalysisFixtures.LINES_DIR, "IMG_20131119a.jpg");
+		File targetDir = ImageAnalysisFixtures.TARGET_LINES_DIR;
+		BufferedImage image = UtilImageIO.loadImage(moleculeFile.toString());
+		ColorAnalyzer colorAnalyzer = new ColorAnalyzer(image);
+		BufferedImage grayImage = colorAnalyzer.getGrayscaleImage();
+		
+		for (Integer nvalues : new Integer[]{4,8,16,32,64,128}) {
+			BufferedImage imageOut = ImageUtil.flattenImage(grayImage, nvalues);
+			colorAnalyzer.readImageDeepCopy(imageOut);
+			SVGG g = colorAnalyzer.createGrayScaleFrequencyPlot();
+			SVGSVG.wrapAndWriteAsSVG(g, new File("target/histogram/postermol"+nvalues+".hist.svg"));
+//			ImageIOUtil.writeImageQuietly(imageOut, new File("target/histogram/postermol"+nvalues+".png"));
+		}
+		
+	}
+	
+	
+	@Test
+	/** photo of molecule
+	 * the background is gray.
+	 * automatic histogram
+	 * 
+	 */
+	public void testMoleculePhotoAutoHistogram() {
+		File moleculeFile = new File(ImageAnalysisFixtures.LINES_DIR, "IMG_20131119a.jpg");
+		File targetDir = ImageAnalysisFixtures.TARGET_LINES_DIR;
+		BufferedImage image = UtilImageIO.loadImage(moleculeFile.toString());
+		ColorAnalyzer colorAnalyzer = new ColorAnalyzer(image);
+		BufferedImage grayImage = colorAnalyzer.getGrayscaleImage();
+		int nvalues = 128;
+		BufferedImage imageOut = ImageUtil.flattenImage(grayImage, nvalues);
+		colorAnalyzer.readImageDeepCopy(imageOut);
+		BufferedImage filterImage = colorAnalyzer.applyAutomaticHistogram(imageOut);
+		SVGG g = colorAnalyzer.createGrayScaleFrequencyPlot();
+		SVGSVG.wrapAndWriteAsSVG(g, new File("target/histogram/postermol"+nvalues+".autohist.svg"));
+		ImageIOUtil.writeImageQuietly(filterImage, new File("target/histogram/postermol"+".filter"+".png"));
+	}
+	
+	@Test
+	/** xy plot with two lines, blue and black.
+	 * 
+	 */
+	public void testCochrane2Lines() {
+		File imageFile = new File(ImageAnalysisFixtures.PLOT_DIR, "cochrane/xyplot2.png");
+		File targetDir = ImageAnalysisFixtures.TARGET_PLOT_DIR;
+		BufferedImage image = UtilImageIO.loadImage(imageFile.toString());
+		Assert.assertNotNull("image exists", image);
+		ColorAnalyzer colorAnalyzer = new ColorAnalyzer(image);
+		BufferedImage grayImage = colorAnalyzer.getGrayscaleImage();
+		int nvalues = 32;
+//		int nvalues = 128;
+		BufferedImage imageOut = ImageUtil.flattenImage(grayImage, nvalues);
+		colorAnalyzer.readImageDeepCopy(imageOut);
+		BufferedImage filterImage = colorAnalyzer.applyAutomaticHistogram(imageOut);
+		SVGG g = colorAnalyzer.createGrayScaleFrequencyPlot();
+		SVGSVG.wrapAndWriteAsSVG(g, new File(targetDir, "cochrane/xyplot2.svg"));
+		ImageIOUtil.writeImageQuietly(filterImage, new File(targetDir, "cochrane/xyplot2.png"));
+	}
+	
+	@Test
+	/** posterize blue/black line plot with antialising
+	 * Problem is dithered colours
+	 * 
+	 * @param filename
+	 * @throws IOException
+	 */
+	public void testPosterizeCochrane() throws IOException {
+		ColorAnalyzer colorAnalyzer = new ColorAnalyzer();
+		colorAnalyzer.readImage(new File(ImageAnalysisFixtures.PLOT_DIR,  "cochrane/xyplot2.png"));
+		colorAnalyzer.setOutputDirectory(new File("target/"+"cochrane/xyplot2"));
+		colorAnalyzer.setStartPlot(1);
+		colorAnalyzer.setMaxPixelSize(1000000);
+//		colorAnalyzer.setIntervalCount(4);
+		colorAnalyzer.setIntervalCount(2);
+		colorAnalyzer.setEndPlot(15);
+		colorAnalyzer.setMinPixelSize(3000);
+//		colorAnalyzer.setMinPixelSize(300);
+		colorAnalyzer.flattenImage();
+		colorAnalyzer.analyzeFlattenedColours();
+	}
+
+
+	
+	// ================================
 
 	private void testPosterize0(String filename) throws IOException {
 		ColorAnalyzer colorAnalyzer = new ColorAnalyzer();
 		colorAnalyzer.readImage(new File(ImageAnalysisFixtures.PROCESSING_DIR, filename+".png"));
 		colorAnalyzer.setOutputDirectory(new File("target/"+filename));
+		LOG.debug("colorAnalyze "+filename);
 		colorAnalyzer.defaultPosterize();
 	}
 

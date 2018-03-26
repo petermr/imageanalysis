@@ -13,4 +13,5 @@ PROBLEM? How to specific root node? Can we assume tree is either:
  * unrooted (in which case take any
 
 
-
+generate diagrams from markdown
+https://github.com/knsv/mermaid/blob/master/README.md
