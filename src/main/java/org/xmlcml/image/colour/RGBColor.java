@@ -30,8 +30,16 @@ public class RGBColor {
 	public static int HEX_WHITE = 0xffffff;
 	public static RGBColor RGB_WHITE = new RGBColor(HEX_WHITE);
 	
-	private int rgb;
+	private int rgb; // int representing rgb
+	private Integer grayValue; // only 24-bit so no sign problem
 	
+	private RGBColor() {
+		
+	}
+	public RGBColor(int r, int g, int b) {
+		this.rgb = (r << 16) + (g << 8) + b;
+	}
+
 	public RGBColor(int rgb) {
 		this.rgb = ColorUtilities.removeAlpha(rgb);
 	}
@@ -82,7 +90,7 @@ public class RGBColor {
 		return entries;
 	}
 
-	public int getRGB() {
+	public int getRGBInteger() {
 		return rgb;
 	}
 
@@ -141,8 +149,34 @@ public class RGBColor {
 		return "#"+ColorUtilities.createPaddedHex(rgb);
 	}
 
+	public RGBColor calculateAverageGray() {
+		int gray = (int) ((getRed() + getGreen() + getBlue()) / 3.0);
+		RGBColor grayColor = new RGBColor(gray, gray, gray);
+		return grayColor;
+	}
 
+	/**
+	 * gets best perceived gray.
+	 * 
+	 * 	0.299*r + 0.587*g + 0.114*b.
 
+	 * @return
+	 */
+	public RGBColor calculateWeightedGray() {
+		RGBColor grayColor = new RGBColor(
+			(int)(0.299 * getRed()),
+			(int)(0.587 * getGreen()),
+			(int)(0.114 * getBlue())
+			);
+		return grayColor;
+	}
+	public int getOrCreateAverageGrayValue() {
+		if (grayValue == null) {
+			RGBColor gray = calculateAverageGray();
+			grayValue = gray.getRGBInteger();
+		}
+		return grayValue;
+	}
 
 
 }

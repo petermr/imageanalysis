@@ -15,6 +15,7 @@ import org.xmlcml.graphics.svg.SVGSVG;
 import org.xmlcml.graphics.svg.util.ImageIOUtil;
 import org.xmlcml.image.colour.ColorAnalyzer;
 import org.xmlcml.image.colour.ColorUtilities;
+import org.xmlcml.image.colour.RGBColor;
 import org.xmlcml.image.pixel.MainPixelProcessor;
 import org.xmlcml.image.pixel.PixelEdge;
 import org.xmlcml.image.pixel.PixelEdgeList;
@@ -82,9 +83,7 @@ public class ImageProcessor {
 	private ColorAnalyzer colorAnalyzer;
 
 	private PixelIsland selectedPixelIsland;
-
 	private BufferedImage binarizedImage;
-
 	private BufferedImage thinnedImage;
 
 	public ImageProcessor() {
@@ -611,6 +610,44 @@ public class ImageProcessor {
 
 	public BufferedImage getThinnedImage() {
 		return thinnedImage;
+	}
+
+	/** filter image by replacing with color.
+	 * 
+	 * @param graycutoff
+	 * @param replacementColor
+	 * @return
+	 */
+	public BufferedImage setPixelsBelow(RGBColor graycutoff, int replacementColor) {
+		BufferedImage newImage = ImageUtil.deepCopy(image);
+		for (int i = 0; i < image.getWidth(); i++) {
+			for (int j = 0; j < image.getHeight(); j++) {
+				RGBColor gray = new RGBColor(image.getRGB(i, j)).calculateAverageGray();
+				if (gray.getRGBInteger() - graycutoff.getRGBInteger() < 0) {
+					newImage.setRGB(i, j, replacementColor);
+				}
+			}
+		}
+		return newImage;
+	}
+
+	/** filter image by replacing with color.
+	 * 
+	 * @param graycutoff
+	 * @param replacementColor
+	 * @return
+	 */
+	public BufferedImage setPixelsAbove(RGBColor graycutoff, int replacementColor) {
+		BufferedImage newImage = ImageUtil.deepCopy(image);
+		for (int i = 0; i < image.getWidth(); i++) {
+			for (int j = 0; j < image.getHeight(); j++) {
+				RGBColor gray = new RGBColor(image.getRGB(i, j)).calculateAverageGray();
+				if (gray.getRGBInteger() - graycutoff.getRGBInteger() > 0) {
+					newImage.setRGB(i, j, replacementColor);
+				}
+			}
+		}
+		return newImage;
 	}
 
 }

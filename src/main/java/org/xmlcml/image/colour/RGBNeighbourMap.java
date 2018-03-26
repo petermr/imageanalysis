@@ -100,9 +100,9 @@ public class RGBNeighbourMap {
 		StringBuilder sb = new StringBuilder();
 		getOrCreateRGBList();
 		for (int i = 0; i < rgbList.size() - 1; i++) {
-			sb.append(ColorUtilities.createPaddedHex(rgbList.get(i).getElement().getRGB())+"> ");
+			sb.append(ColorUtilities.createPaddedHex(rgbList.get(i).getElement().getRGBInteger())+"> ");
 			for (int j = i + 1; j < rgbList.size(); j++) {
-				sb.append(" "+ColorUtilities.createPaddedHex(rgbList.get(j).getElement().getRGB()));
+				sb.append(" "+ColorUtilities.createPaddedHex(rgbList.get(j).getElement().getRGBInteger()));
 			}
 			sb.append("\n");
 		}
@@ -158,7 +158,7 @@ public class RGBNeighbourMap {
 				if (rgbNeighbourCount != null) {
 					if (rgbNeighbourCount > maxRgbNeighbourCount) {
 						maxRgbNeighbourCount = rgbNeighbourCount;
-						maxRgbNeighbourValue = rgbNeighbourValue.getRGB();
+						maxRgbNeighbourValue = rgbNeighbourValue.getRGBInteger();
 					}
 				}
 			}

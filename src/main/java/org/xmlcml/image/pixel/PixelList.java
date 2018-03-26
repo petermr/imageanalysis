@@ -13,7 +13,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
-import org.xmlcml.euclid.Angle;
 import org.xmlcml.euclid.Int2;
 import org.xmlcml.euclid.Int2Range;
 import org.xmlcml.euclid.Real2;
@@ -22,6 +21,8 @@ import org.xmlcml.euclid.RealArray;
 import org.xmlcml.graphics.svg.SVGG;
 import org.xmlcml.graphics.svg.SVGRect;
 import org.xmlcml.graphics.svg.SVGSVG;
+import org.xmlcml.image.colour.ColorUtilities;
+import org.xmlcml.image.colour.RGBColor;
 import org.xmlcml.image.pixel.PixelComparator.ComparatorType;
 
 /**
@@ -292,12 +293,41 @@ public class PixelList implements Iterable<Pixel> {
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				int rgb = image.getRGB(i, j) & 0x00ffffff;
-				if (rgb == colorValue) {
+				if (isEqual(colorValue, rgb)) {
 					list.add(new Pixel(i, j));
 				}
 			}
 		}
 		return list;
+	}
+	
+
+	/** create PixelList from all pixels with given value.
+	 * 
+	 * @param image1
+	 * @param colorValue
+	 * @param deltaValues tolerance from R, G, B equality
+	 * @return
+	 */
+	public static PixelList createPixelList(BufferedImage image, int color1, int[] deltaValues) {
+		PixelList list = new PixelList();
+		int width = image.getWidth();
+		int height = image.getHeight();
+		RGBColor colorRGB1 = new RGBColor(color1);
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				int rgb = image.getRGB(i, j) & 0x00ffffff;
+				RGBColor colorRGB = new RGBColor(rgb);
+				if (ColorUtilities.isEqual(colorRGB1, colorRGB, deltaValues)) {
+					list.add(new Pixel(i, j));
+				}
+			}
+		}
+		return list;
+	}
+
+	public static boolean isEqual(int colorValue, int rgb) {
+		return rgb == colorValue;
 	}
 	
 	/** draw pixelList.

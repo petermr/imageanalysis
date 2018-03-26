@@ -268,7 +268,7 @@ public class PixelIslandList implements Iterable<PixelIsland> {
 	public Multimap<Integer, PixelIsland> createCharactersByHeight() {
 		Multimap<Integer, PixelIsland> map = ArrayListMultimap.create();
 		for (PixelIsland island : list) {
-			Integer height = (int) island.getBoundingBox().getYRange()
+			Integer height = (int) (double) island.getBoundingBox().getYRange()
 					.getRange();
 			map.put(height, island);
 		}
@@ -398,8 +398,8 @@ public class PixelIslandList implements Iterable<PixelIsland> {
 		if (bbox.getXRange() != null || bbox.getYRange() != null) {
 			int x0 = (int) (double) bbox.getXMin();
 			int y0 = (int) (double) bbox.getYMin();
-			int width = (int) bbox.getXRange().getRange() + 1;
-			int height = (int) bbox.getYRange().getRange() + 1;
+			int width = (int) (double) bbox.getXRange().getRange() + 1;
+			int height = (int) (double) bbox.getYRange().getRange() + 1;
 			image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 			clearImage(width, height, image);
 			for (PixelIsland pixelIsland : this) {

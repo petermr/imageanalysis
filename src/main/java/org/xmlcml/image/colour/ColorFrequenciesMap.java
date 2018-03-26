@@ -25,6 +25,7 @@ public class ColorFrequenciesMap /*implements Map<RGBColor, Integer>*/ {
 		LOG.setLevel(Level.DEBUG);
 	}
 
+	// might also use Entry<RGBColor> ???
 	private Map<RGBColor, Integer> frequenciesMap;
 
 	ColorFrequenciesMap() {

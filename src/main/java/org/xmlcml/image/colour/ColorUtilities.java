@@ -252,4 +252,40 @@ public class ColorUtilities {
 		return new Integer(i);
 	}
 
+	/** creates a 6 hex-digit string padded with leading zeroes.
+	 * 
+	 * @param hexColorS hex such as abf ; no hashes, ampersands, etc
+	 * @return padded string 000abf 
+	 */
+	public static String padWithLeadingZero(String hexColorS) {
+		hexColorS = "000000"+hexColorS;
+		hexColorS = hexColorS.substring(hexColorS.length() - 6);
+		return hexColorS;
+	}
+
+	public static boolean isEqual(RGBColor colorRGB1, RGBColor colorRGB, int[] deltaValues) {
+		int red1 = colorRGB1.getRed();
+		int red = colorRGB.getRed();
+		if (Math.abs(red1 - red) > deltaValues[0]) return false;
+		int green1 = colorRGB1.getGreen();
+		int green = colorRGB.getGreen();
+		if (Math.abs(green1 - green) > deltaValues[1]) return false;
+		int blue1 = colorRGB1.getBlue();
+		int blue = colorRGB.getBlue();
+		if (Math.abs(blue1 - blue) > deltaValues[2]) return false;
+		return true;
+	}
+
+	/** are two colors equal within tolerances?
+	 * 
+	 * @param rgb1
+	 * @param rgb2
+	 * @param deltaRgb
+	 * @return
+	 */
+	public static boolean isEqual(int rgb1, int rgb2) {
+		return rgb2 == rgb1;
+	}
+	
+
 }

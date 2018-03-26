@@ -5,32 +5,31 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import javax.imageio.ImageIO;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.xmlcml.euclid.Int2;
 import org.xmlcml.euclid.Int2Range;
 import org.xmlcml.euclid.IntArray;
 import org.xmlcml.euclid.IntRange;
 import org.xmlcml.euclid.IntSet;
-import org.xmlcml.euclid.Real2;
-import org.xmlcml.euclid.util.MultisetUtil;
+import org.xmlcml.euclid.RealArray;
+import org.xmlcml.euclid.RealArray.Filter;
 import org.xmlcml.graphics.svg.SVGG;
-import org.xmlcml.graphics.svg.SVGRect;
 import org.xmlcml.graphics.svg.SVGSVG;
-import org.xmlcml.graphics.svg.SVGText;
 import org.xmlcml.graphics.svg.util.ImageIOUtil;
+import org.xmlcml.image.ImageProcessor;
 import org.xmlcml.image.ImageUtil;
 import org.xmlcml.image.pixel.PixelList;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
+
+import boofcv.io.image.UtilImageIO;
 
 /** analyzes images for colours.
  * 
@@ -74,6 +73,9 @@ public class ColorAnalyzer {
 	private IntArray colorCounts;
 	private Int2Range xyRange;
 	private List<PixelList> pixelListList;
+	/** limits on pixel counts for images to be output
+	 * 
+	 */
 	private int maxPixelSize = 100000;
 	private int minPixelSize = 100;
 	private int startPlot = 1;
@@ -97,11 +99,24 @@ public class ColorAnalyzer {
 //		colorAnalyzer.setOutputDirectory(new File("target/"+filename));
 //		colorAnalyzer.analyzeFlattenedColours();
  */
-	public ColorAnalyzer(Image image) {
+	public ColorAnalyzer(BufferedImage image) {
 		readImage(image);
 	}
 
-	public void readImage(Image image) {
+	/** read and deep copy and process image.
+	 * deep copy so image will not be modified
+	 * @param image
+	 */
+	public void readImageDeepCopy(BufferedImage image) {
+		BufferedImage image1 = ImageUtil.deepCopy(image);
+		readImage(image1);
+	}
+
+	/** read and process image.
+	 * shallow copy so image may be modified
+	 * @param image
+	 */
+	public void readImage(BufferedImage image) {
 		clearVariables();
 		setInputImage(image);
 		this.height = image.getHeight(null);
@@ -229,7 +244,7 @@ public class ColorAnalyzer {
 	public void analyzeFlattenedColours() {
 		getOrCreateColorSet();
 		createSortedFrequencies();
-		createSortedPixelLists();
+		createPixelListsFromColorValues();
 		if (outputDirectory != null) {
 			writePixelListsAsSVG();
 			writeMainImage("main.png");
@@ -243,8 +258,7 @@ public class ColorAnalyzer {
 	private void writePixelListsAsSVG() {
 		for (int i = 0; i < pixelListList.size(); i++) {
 			String hexColorS = Integer.toHexString(colorValues.elementAt(i));
-			hexColorS = "000000"+hexColorS;
-			hexColorS = hexColorS.substring(hexColorS.length() - 6);
+			hexColorS = ColorUtilities.padWithLeadingZero(hexColorS);
 			PixelList pixelList = pixelListList.get(i);
 			int size = pixelList.size();
 			if (size <= maxPixelSize && size >= minPixelSize) {
@@ -254,13 +268,16 @@ public class ColorAnalyzer {
 					// use maximum values for width as we don't want to shift origin
 					int xmax = pixelList.getIntBoundingBox().getXRange().getMax();
 					int ymax = pixelList.getIntBoundingBox().getYRange().getMax();
-					SVGSVG.wrapAndWriteAsSVG(g, new File(outputDirectory, i+"_"+hexColorS+".svg"), xmax, ymax);
+					File file = new File(outputDirectory, i+"_"+hexColorS+".svg");
+					LOG.debug("output pixels "+file);
+					SVGSVG.wrapAndWriteAsSVG(g, file, xmax, ymax);
 				}
 			}
 		}
 	}
 
-	private void createSortedPixelLists() {
+	
+	private void createPixelListsFromColorValues() {
 		pixelListList = new ArrayList<PixelList>();
 		for (int i = 0; i < colorValues.size(); i++) {
 			int colorValue = colorValues.elementAt(i);
@@ -275,7 +292,7 @@ public class ColorAnalyzer {
 		colorValues = new IntArray();
 		colorCounts = new IntArray();
 		for (Entry<RGBColor> entry : colorSet.entrySet()) {
-			int ii = entry.getElement().getRGB();
+			int ii = entry.getElement().getRGBInteger();
 			colorValues.addElement(ii);
 			colorCounts.addElement(entry.getCount());
 			int size = colorValues.size();
@@ -283,15 +300,6 @@ public class ColorAnalyzer {
 		this.sortedFrequencyIndex = colorCounts.indexSortDescending();
 		colorCounts = colorCounts.getReorderedArray(sortedFrequencyIndex);
 		colorValues = colorValues.getReorderedArray(sortedFrequencyIndex);
-//		IntArray cc = new IntArray();
-//		IntArray cv = new IntArray();
-//		for (int i = 0; i < sortedFrequencyIndex.size(); i++) {
-//			cc.addElement(colorCounts.elementAt(sortedFrequencyIndex.elementAt(i)));
-//			cv.addElement(colorValues.elementAt(sortedFrequencyIndex.elementAt(i)));
-//			cv.
-//		}
-//		colorValues = cv;
-//		colorCounts = cc;
 	}
 
 	public void setOutputDirectory(File file) {
@@ -341,61 +349,31 @@ public class ColorAnalyzer {
 		this.analyzeFlattenedColours();
 
 	}
-	
+
+	/** get a list of colours sorted by grayscales.
+	 * if colours are not gray, uses avergeGray value.
+	 * @return order list of entries (colors with counts)
+	 */
+	public List<Entry<RGBColor>> createGrayscaleHistogram() {
+		Multiset<RGBColor> set = this.getOrCreateColorSet();
+		List<Entry<RGBColor>> colorList = new ArrayList<Entry<RGBColor>>(set.entrySet());
+		Collections.sort(colorList, new GrayScaleEntryComparator());
+		return colorList;
+	}
+		
 	public SVGG createColorFrequencyPlot() {
 		Multiset<RGBColor> set = this.getOrCreateColorSet();
-		SVGG g = new SVGG();
-		double x0 = 10.;
-		double y0 = 10.;
-		double ydelta = 20.;
-		double x = x0;
-		double y = y0;
-		double xscale = 50.;
-		double yscale = 0.9;
-		double height = ydelta * yscale;
-		double fontSize = ydelta * 0.75;
-		double strokeWidth = 0.5;
-		double fontOffset = ydelta * 0.75;
-		String stroke = "black";
-		List<Entry<RGBColor>> rgb = RGBColor.createRGBListSortedByCount(set);
-		for (Entry<RGBColor> entry : rgb) {			// uncomment for debug
-			double percent = (100. * (double) entry.getCount() / (double) set.size()); 
-			RGBColor color = entry.getElement();
-			if (!color.getHex().equals("#ffffff")) {
-				y = plotRectangleAndText(g, ydelta, x, y, xscale, height, fontSize, strokeWidth, fontOffset, stroke, percent,
-						color.getHex());
-			}
-		}
-		return g;
-	}
+		RGBHistogram rgbHistogram = new RGBHistogram(set);
 
-	private double plotRectangleAndText(SVGG g, double ydelta, double x, double y, double xscale, double height, double fontSize,
-			double strokeWidth, double fontOffset, String stroke, double percent, String color) {
-		double width = percent * xscale;
-		SVGRect rect = new SVGRect(x, y, width, height);
-		SVGText text = new SVGText(new Real2(x, y + fontOffset), color);
-		text.setFontSize(fontSize);
-		text.setFontWeight("bold");
-		text.setFill("white");
-		text.setStrokeWidth(strokeWidth);
-		text.setStroke(stroke);
-		text.setFontFamily("monospace");
-		
-		rect.setFill(color);
-		rect.setStrokeWidth(strokeWidth);
-		rect.setStroke(stroke);
-		y += ydelta;
-		g.appendChild(rect);
-		g.appendChild(text);
-		return y;
+
+		SVGG g = rgbHistogram.plot();
+		return g;
 	}
 
 	public RGBNeighbourMap getOrCreateNeighbouringColorMap() {
 		if (rgbNeighbourMap == null) {
 			getOrCreateColorFrequenciesMap();
 			rgbNeighbourMap = new RGBNeighbourMap(colorSet);
-//			LOG.debug("size "+rgbNeighbourMap.size());
-//			LOG.debug("Keys "+rgbNeighbourMap.keySet());
 		}
 		return rgbNeighbourMap;
 	}
@@ -414,14 +392,12 @@ public class ColorAnalyzer {
 	public BufferedImage mergeMinorColours(BufferedImage image) {
 		readImage(image);
 		getOrCreateNeighbouringColorMap();
-//		Set<RGBColor> rgbNeighbourKeys = rgbNeighbourMap.keySet();
-//		List<RGBColor> rgbNeighbourKeyList = new ArrayList<RGBColor>(rgbNeighbourKeys);
 		BufferedImage newImage = ImageUtil.deepCopy(image);
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				RGBColor rgbColor = new RGBColor(image.getRGB(i, j));
 				RGBColor rgbColor1 = rgbNeighbourMap.getMoreFrequentRGBNeighbour(colorFrequenciesMap, rgbColor);
-				newImage.setRGB(i, j, rgbColor1.getRGB());
+				newImage.setRGB(i, j, rgbColor1.getRGBInteger());
 			}
 		}
 		return newImage;
@@ -465,6 +441,105 @@ public class ColorAnalyzer {
 		return newImage;
 	}
 
+	/** calculate grayscale.
+	 * 
+	 * @return
+	 */
+	public BufferedImage getGrayscaleImage() {
+		BufferedImage newImage = ImageUtil.deepCopy(inputImage);
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				RGBColor rgbColor = new RGBColor(inputImage.getRGB(i, j));
+				RGBColor grayColor = rgbColor.calculateAverageGray();
+				newImage.setRGB(i, j, grayColor.getRGBInteger());
+			}
+		}
+		return newImage;
+	}
 
+	/** calculate grayscale.
+	 * 
+	 * @return
+	 */
+	public SVGG getGrayscaleColors() {
+		BufferedImage newImage = ImageUtil.deepCopy(inputImage);
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				RGBColor rgbColor = new RGBColor(inputImage.getRGB(i, j));
+				RGBColor grayColor = rgbColor.calculateAverageGray();
+				newImage.setRGB(i, j, grayColor.getRGBInteger());
+			}
+		}
+		return this.createColorFrequencyPlot();
+	}
+
+	public SVGG createGrayScaleFrequencyPlot() {
+		List<Entry<RGBColor>> colorList = this.createGrayscaleHistogram();
+		RGBHistogram rgbHistogram = new RGBHistogram(colorList);
+		// set params
+		SVGG g = rgbHistogram.plot();
+		return g;
+	}
+
+	public BufferedImage applyAutomaticHistogram(BufferedImage image) {
+		double peakFraction = 0.5;
+		double cutoffFactor = 0.75;
+		List<Entry<RGBColor>> colorList = this.createGrayscaleHistogram();
+		IntArray counts = extractCounts(colorList);
+		RealArray realCountArray = new RealArray(counts);
+		// goes from black 0 to white ffffff
+		RealArray firstFilter = RealArray.getFilter(2, Filter.GAUSSIAN_FIRST_DERIVATIVE);
+		RealArray firstDerivative = realCountArray.applyFilter(firstFilter);
+		double maxFirstDerivative = firstDerivative.getMax();
+		int cutoffIndex = (int) firstDerivative.findFirstLocalMaximumafter(0, maxFirstDerivative * peakFraction);
+		cutoffIndex *= cutoffFactor; // purely empirical
+		RGBColor graycutoff = colorList.get(cutoffIndex).getElement();
+		ImageProcessor imageProcessor = new ImageProcessor(image);
+		BufferedImage filterImage = imageProcessor.setPixelsAbove(graycutoff, RGBColor.HEX_WHITE);
+		
+//		RealArray secondFilter = RealArray.getFilter(3, Filter.GAUSSIAN_SECOND_DERIVATIVE);
+//		RealArray secondDerivative = realCountArray.applyFilter(secondFilter);
+////		LOG.debug(secondDerivative.format(0));
+
+//		LOG.debug(realCountArray);
+		return filterImage;
+	}
+
+	private IntArray extractCounts(List<Entry<RGBColor>> colorList) {
+		IntArray countArray = new IntArray();
+//		LOG.debug(colorList.get(0));
+		for (int i = 0; i < colorList.size(); i++) {
+			Entry<RGBColor> entry = colorList.get(i);
+			countArray.addElement(entry.getCount());
+		}
+		return countArray;
+	}
+
+	public BufferedImage mergeImage(BufferedImage mergeImage) {
+		BufferedImage newImage = ImageUtil.deepCopy(inputImage);
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				RGBColor inputColor = new RGBColor(inputImage.getRGB(i, j));
+				RGBColor newColor = new RGBColor(mergeImage.getRGB(i, j));
+				if (inputColor.equals(RGBColor.RGB_WHITE)) {
+					inputColor = newColor;
+				}
+				newImage.setRGB(i, j, inputColor.getRGBInteger());
+			}
+		}
+		return newImage;
+	}
+
+	public BufferedImage mergeImages(File imageFile1, File... imageFiles) {
+		BufferedImage image1 = UtilImageIO.loadImage(imageFile1.toString());
+		readImage(image1);
+		
+		for (File imageFile : imageFiles) {
+			BufferedImage image = UtilImageIO.loadImage(imageFile.toString());//
+			BufferedImage newImage = mergeImage(image);
+			readImage(newImage);
+		}
+		return getInputImage();
+	}
 
 }

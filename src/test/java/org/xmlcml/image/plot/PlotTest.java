@@ -47,9 +47,11 @@ public class PlotTest {
 
 	public final static Logger LOG = Logger.getLogger(PlotTest.class);
 
-	private final static String SHARK = "0095565.g002";
-	private final static File G002_DIR = new File(ImageAnalysisFixtures.COMPOUND_DIR,
-			"journal.pone." + SHARK);
+	public final static String SHARK = "0095565.g002";
+//	public final static File G002_DIR = new File(ImageAnalysisFixtures.COMPOUND_DIR,
+//			"journal.pone." + SHARK);
+	public final static File G002_DIR = new File(ImageAnalysisFixtures.COMPOUND_DIR,
+			"components");
 	public static ImageProcessor DEFAULT_IMAGE_PROCESSOR = null;
 	private File PLOT_OUT_DIR;
 	private File CCJ_DIR = new File(ImageAnalysisFixtures.DIAGRAMS_DIR, "ccj");
@@ -68,9 +70,12 @@ public class PlotTest {
 	/**
 	 * Image from PLoSONE as archetypal X-Y plot.
 	 * 
+	 * 
 	 * journal.pone.0095565.g002.png. The plot has: * x and y axes (each with
 	 * ticks, numbers and title) y - axis has horizontal numbers but rotated
-	 * title * points with error bars * best-fit line
+	 * title
+	 * points with error bars 
+	 * best-fit line
 	 * 
 	 * Note that the antialiasing is severe and occasionally bleeds between
 	 * characters
@@ -81,10 +86,8 @@ public class PlotTest {
 	public void testDefaultSharkPlot() throws IOException {
 		File g002 = new File(G002_DIR, "g002.png");
 		BufferedImage image = UtilImageIO.loadImage(g002.toString());
-		ImageProcessor imageProcessor = ImageProcessor
-				.createDefaultProcessorAndProcess(image);
-		ImageIOUtil.writeImageQuietly(image, new File("target/" + SHARK
-				+ "/raw.png"));
+		ImageProcessor imageProcessor = ImageProcessor.createDefaultProcessorAndProcess(image);
+		ImageIOUtil.writeImageQuietly(image, new File("target/" + SHARK + "/raw.png"));
 		BufferedImage defaultBinaryImage = imageProcessor.getImage();
 		ImageIOUtil.writeImageQuietly(defaultBinaryImage, new File("target/"
 				+ SHARK + "/defaultBinary.png"));
@@ -567,7 +570,8 @@ public class PlotTest {
 //		outfile = new File("target/" + "0095794.g009" + "/plotLineAllPoints12a.svg");
 //		extractPointsAndPlot(infile, outfile, 2, 180, 5);
 		
-		infile = new File(ImageAnalysisFixtures.DIAGRAMS_DIR, "plot/rscopen/JV_6.gif");
+//		infile = new File(ImageAnalysisFixtures.DIAGRAMS_DIR, "plot/rscopen/JV_6.gif");
+		infile = new File(ImageAnalysisFixtures.DIAGRAMS_DIR, "plot/rscopen/jv/figure6/figure.gif");
 		new File("target/" + "image1").mkdirs();
 		outfile = new File("target/" + "image1" + "/plotLineAllPoints12a.svg");
 //		extractPointsAndPlot(infile, outfile, 0, 230, 23);
@@ -656,11 +660,11 @@ public class PlotTest {
 
 	}
 
-	private void drawRings(List<PixelRingList> pixelRingListList, File outfile) {
+	public static void drawRings(List<PixelRingList> pixelRingListList, File outfile) {
 		SVGG g = new SVGG();
 		for (PixelRingList pixelRingList : pixelRingListList) {
 			SVGG gg = pixelRingList.plotPixels(g,
-					new String[] { "red", BLUE });
+					new String[] { "red", "blue", "yellow", "cyan", "green", "orange" });
 		}
 		SVGSVG.wrapAndWriteAsSVG(g, outfile);
 	}
@@ -746,6 +750,10 @@ public class PlotTest {
 	}
 
 	@Test
+	/** hi-res bitmap that gives very good thinning
+	 * reveals bar plots and characters (not interpreted)
+	 * @throws IOException
+	 */
 	public void test004179BarChart() throws IOException {
 		plotRingsAndThin(new File(ImageAnalysisFixtures.COMPOUND_DIR,
 				"journal.pone.0094179.g008.png"), new File(
@@ -898,8 +906,6 @@ public class PlotTest {
 		PixelIslandList plot = ImageProcessor.createDefaultProcessorAndProcess(
 				infile).getOrCreatePixelIslandList();
 		List<PixelRingList> pixelRingListList = plot.createRingListList();
-		// Assert.assertEquals("characters", 4, plot.size());
-		// drawRings(pixelRingListList, new File("target/plot/ynumbers.svg"));
 		drawRings(pixelRingListList, outfile2);
 	}
 
