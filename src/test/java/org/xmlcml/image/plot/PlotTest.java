@@ -750,18 +750,6 @@ public class PlotTest {
 	}
 
 	@Test
-	/** hi-res bitmap that gives very good thinning
-	 * reveals bar plots and characters (not interpreted)
-	 * @throws IOException
-	 */
-	public void test004179BarChart() throws IOException {
-		plotRingsAndThin(new File(ImageAnalysisFixtures.COMPOUND_DIR,
-				"journal.pone.0094179.g008.png"), new File(
-				"target/plot/0094179_8.svg"), new File(
-				"target/plot/0094179_8_2.svg"));
-	}
-
-	@Test
 	public void test004179CirclePlots() throws IOException {
 		plotRingsAndThin(new File(ImageAnalysisFixtures.COMPOUND_DIR,
 				"journal.pone.0094179.g002.png"), new File(
@@ -868,40 +856,11 @@ public class PlotTest {
 	
 	}
 	
-	/** several lines emerging from one point.
-	 * creates nested outlines.
-	 * 
-	 * xyplot with gridlines.
-	 * 
-	 */
-
-	@Test
-	public void testDrainSource2OutlinesCode() {
-		OutlineTester outlineTester = new OutlineTester();
-		outlineTester.expectedRingSizes = new int[][] {
-			new int[]{32104,13784,7343},
-			new int[]{92,50,1},
-		};
-		outlineTester.nodes = new int[] {19,1,0,0};
-		outlineTester.edges = new int[] {20,1,0,0};
-		outlineTester.outlines = new int[] {7388, 3174};
-		
-		outlineTester.dir = "electronic";
-		outlineTester.inname = "drainsource2";
-		outlineTester.outdir = ImageAnalysisFixtures.TARGET_ELECTRONIC_DIR;
-		outlineTester.indir = ImageAnalysisFixtures.ELECTRONIC_DIR;
-		
-		outlineTester.islandCount = 40;
-		outlineTester.mainIslandCount = 2;
-		outlineTester.pixelRingListCount = new int[] {8, 2};
-
-		outlineTester.analyzeAndAssertFile();
 	
-	}
 
 	// =========================
 
-	private void plotRingsAndThin(File infile, File outfile1, File outfile2)
+	static void plotRingsAndThin(File infile, File outfile1, File outfile2)
 			throws IOException {
 		PixelIslandList plot = ImageProcessor.createDefaultProcessorAndProcess(
 				infile).getOrCreatePixelIslandList();
